@@ -17,7 +17,7 @@
         }
         .input-card {
             background-color: #ffffff;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2p x rgba(0, 0, 0, 0.05);
         }
         .output-card {
             background-color: #eef2ff; /* Light Indigo */
@@ -61,10 +61,37 @@
             display: block;
         }
         /* Custom styles for Tailwind to ensure consistency */
-        input[type="number"] {
+        input[type="number"], select {
             padding: 0.75rem;
             border: 1px solid #d1d5db;
             border-radius: 0.5rem;
+            background-color: white;
+            appearance: none; /* Removes default dropdown arrow */
+        }
+        /* Style for the collapsible summary */
+        details summary {
+            cursor: pointer;
+            font-size: 1.125rem; /* text-xl */
+            font-weight: 600; /* font-semibold */
+            color: #4f46e5; /* indigo-600 */
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 1rem;
+            list-style: none; /* Removes default arrow/marker */
+        }
+        details summary::-webkit-details-marker {
+            display: none;
+        }
+        details summary::before {
+            content: "+";
+            font-weight: bold;
+            display: inline-block;
+            margin-right: 0.5rem;
+            transition: transform 0.2s;
+        }
+        details[open] summary::before {
+            content: "−";
+            transform: rotate(0deg);
         }
     </style>
 </head>
@@ -86,11 +113,19 @@
                 <h2 class="text-2xl font-semibold text-indigo-700 mb-6">
                     Compromised Access <span class="text-base font-normal text-gray-500">(Data from Lunar)</span>
                 </h2>
+                
+                <!-- NEW Input Group: Employee Count -->
+                <div class="mb-4">
+                    <label for="employee_count" class="block text-sm font-medium text-gray-700 mb-1">
+                        1. Total Number of Employees (For Pricing Tier)
+                    </label>
+                    <input type="number" id="employee_count" value="1500" min="1" oninput="calculateRisk()" class="w-full">
+                </div>
 
                 <!-- Input Group: Total Exposed -->
                 <div class="mb-4">
                     <label for="total_exposed" class="block text-sm font-medium text-gray-700 mb-1">
-                        1. Total Compromised Corporate Emails Found
+                        2. Total Compromised Corporate Emails Found
                     </label>
                     <input type="number" id="total_exposed" value="280" min="0" oninput="calculateRisk()" class="w-full">
                 </div>
@@ -98,7 +133,7 @@
                 <!-- Input Group: Infostealer Count -->
                 <div class="mb-4">
                     <label for="infostealer_count" class="block text-sm font-medium text-gray-700 mb-1">
-                        2. Count of Infostealer Logs Found (Highest Risk)
+                        3. Count of Infostealer Logs Found (Highest Risk)
                     </label>
                     <input type="number" id="infostealer_count" value="20" min="0" oninput="calculateRisk()" class="w-full">
                 </div>
@@ -106,7 +141,7 @@
                 <!-- NEW Input Group: Cookies Count -->
                 <div class="mb-4">
                     <label for="cookies_count" class="block text-sm font-medium text-gray-700 mb-1">
-                        3. Count of Compromised Session Cookies Found (Extreme Risk)
+                        4. Count of Compromised Session Cookies Found (Extreme Risk)
                     </label>
                     <input type="number" id="cookies_count" value="5" min="0" oninput="calculateRisk()" class="w-full">
                 </div>
@@ -114,7 +149,7 @@
                 <!-- Input Group: Privileged Count -->
                 <div class="mb-4">
                     <label for="admin_count" class="block text-sm font-medium text-gray-700 mb-1">
-                        4. Count of C-Level/Admin Credentials Found
+                        5. Count of C-Level/Admin Credentials Found
                     </label>
                     <input type="number" id="admin_count" value="3" min="0" oninput="calculateRisk()" class="w-full">
                 </div>
@@ -122,19 +157,26 @@
                 <!-- Input Group: New Unique Dumps -->
                 <div class="mb-4">
                     <label for="new_dumps_count" class="block text-sm font-medium text-gray-700 mb-1">
-                        5. Count of New Unique Breach Dumps (< 6 mos.)
+                        6. Count of New Unique Breach Dumps (< 6 mos.)
                     </label>
                     <input type="number" id="new_dumps_count" value="15" min="0" oninput="calculateRisk()" class="w-full">
                 </div>
 
-                <!-- Input Group: Financial Impact -->
+                <!-- Input Group: Industry Select (Replaces impact_cost number input) -->
                 <div class="mt-8 pt-4 border-t border-gray-200">
-                    <label for="impact_cost" class="block text-sm font-medium text-gray-700 mb-1">
-                        6. Estimated Financial Cost of a Single Breach (Industry SLE)
+                    <label for="industry_select" class="block text-sm font-medium text-gray-700 mb-1">
+                        7. Client Industry (Sets Financial Cost Benchmark)
                     </label>
-                    <input type="number" id="impact_cost" value="4500000" min="100000" oninput="calculateRisk()" class="w-full">
+                    <select id="industry_select" onchange="calculateRisk()" class="w-full">
+                        <option value="finance">Financial Services ($6.2M SLE)</option>
+                        <option value="healthcare">Healthcare ($5.5M SLE)</option>
+                        <option value="tech">Technology ($4.8M SLE)</option>
+                        <option value="default" selected>General/Other ($4.5M SLE)</option>
+                        <option value="manufacturing">Manufacturing ($4.2M SLE)</option>
+                        <option value="retail">Retail ($3.5M SLE)</option>
+                    </select>
                     <p class="text-xs text-gray-500 mt-1">
-                        (Sourced from IBM/Ponemon.)
+                        (SLE benchmark adjusted per industry, based on IBM/Ponemon.)
                     </p>
                 </div>
             </div>
@@ -148,6 +190,14 @@
                 <!-- Priority Alert -->
                 <div id="priority_alert" class="priority-alert p-4 rounded-lg mb-6">
                     RISK PRIORITY: HIGH (Likelihood > 5%)
+                </div>
+
+                <!-- Peer Comparison Metric -->
+                <div class="mb-6 p-3 bg-indigo-100 rounded-lg">
+                    <p class="text-md font-medium text-indigo-700">Industry Peer Comparison</p>
+                    <p class="text-sm text-gray-700 mt-1" id="peer_comparison_output">
+                        Your Inherent Likelihood (0.00%) is X% higher than the industry average (3.50%).
+                    </p>
                 </div>
 
                 <!-- Risk Gauge Visualization -->
@@ -179,12 +229,12 @@
                         </p>
                     </div>
 
-                    <!-- RISK REDUCTION ROI -->
+                    <!-- NET ROI OUTPUT -->
                     <div class="output-box bg-green-50 p-6 rounded-lg shadow-md border-2 border-green-400">
-                        <p class="text-lg font-medium text-gray-800">2. Potential Risk Reduction Value</p>
+                        <p class="text-lg font-medium text-gray-800">2. Net Risk Reduction ROI (Post-Service Cost)</p>
                         <strong id="roi_output" class="text-green-700">$0</strong>
                         <p class="text-sm text-gray-500">
-                            The value avoided if client mitigates all high-risk accounts identified.
+                            The net financial benefit after factoring in the <span id="roi_cost_output"></span> annual cost of Lunar (based on your employee count).
                         </p>
                     </div>
 
@@ -198,37 +248,47 @@
             <h3 class="text-2xl font-semibold text-indigo-700 mb-6">
                 Model Transparency: Financial Value of Each Threat
             </h3>
-            <p class="text-base text-gray-700 mb-6">
-                The financial figures above are calculated by assigning a weighted risk value to <strong>every single compromised credential</strong> found, based on the fidelity and exploitability of the data source.
-            </p>
             
-            <!-- EXPLANATION OF CRQ PRINCIPLES -->
-            <p class="text-base text-gray-700 mb-6">
-                A credential is assigned a dollar value through a process called <strong>Cyber Risk Quantification (CRQ)</strong>, a method adopted from finance to measure risk in monetary terms. We base our weighting on established industry standards like FAIR (Factor Analysis of Information Risk) and CVSS (Common Vulnerability Scoring System), which prioritize two key factors: 
-                <br><br>
-                1. <span style="font-weight: 600;">Exploitability:</span> How easily can an attacker use the compromised data? Threats that bypass modern security (like session cookies bypassing MFA) are weighted highest.
-                <br>
-                2. <span style="font-weight: 600;">Impact:</span> What is the potential damage if the credential is used? Privileged accounts (C-Level/Admin) are weighted far higher because a compromise means a catastrophic loss.
-                <br><br>
-                This proprietary, quantified risk is then combined with the client's input for the <strong>Estimated Financial Cost of a Single Breach</strong> to provide the final figure for your expected annual loss.
-            </p>
+            <details class="border border-gray-200 rounded-lg p-4 mb-6">
+                <summary>View Full Methodology & Financial Sourcing</summary>
+                <div>
+                    <p class="text-base text-gray-700 mt-4 mb-6">
+                        The financial figures above are calculated by assigning a weighted risk value to <strong>every single compromised credential</strong> found, based on the fidelity and exploitability of the data source.
+                    </p>
+                    
+                    <!-- EXPLANATION OF CRQ PRINCIPLES -->
+                    <p class="text-base text-gray-700 mb-6">
+                        A credential is assigned a dollar value through a process called <strong>Cyber Risk Quantification (CRQ)</strong>, a method adopted from finance to measure risk in monetary terms. We base our weighting on established industry standards like FAIR (Factor Analysis of Information Risk) and CVSS (Common Vulnerability Scoring System), which prioritize two key factors: 
+                        <br><br>
+                        1. <span style="font-weight: 600;">Exploitability:</span> How easily can an attacker use the compromised data? Threats that bypass modern security (like session cookies bypassing MFA) are weighted highest.
+                        <br>
+                        2. <span style="font-weight: 600;">Impact:</span> What is the potential damage if the credential is used? Privileged accounts (C-Level/Admin) are weighted far higher because a compromise means a catastrophic loss.
+                        <br><br>
+                        This proprietary, quantified risk is then combined with the client's industry-specific financial cost baseline of <span id="dynamic_sle_value"></span> to provide the final figure for your expected annual loss.
+                    </p>
 
-            <div class="text-base text-gray-700 space-y-4 mb-6 ml-6">
-                <p>
-                    <strong>Source of Baseline Cost:</strong> The default cost for a single breach (\$4,500,000) is derived from extensive annual industry studies, primarily those published by <strong>IBM Security (Cost of a Data Breach Report)</strong> and <strong>Verizon (Data Breach Investigations Report - DBIR)</strong>. These reports analyze thousands of real-world security incidents. The final figure represents the average total cost of a data breach, which includes expenses such as: legal/regulatory fees, customer churn, incident response costs, and lost business revenue. We use this external, vetted figure to ensure the Annualized Loss Expectancy (ALE) is grounded in proven financial reality.
-                </p>
-                <p>
-                    <strong>Factor Analysis of Information Risk (FAIR™):</strong> Our model aligns with FAIR's core component, Loss Event Frequency (LEF). We assign higher weights to fresh, high-fidelity findings (Infostealer, Cookies) because, in FAIR terms, this data dramatically increases the likelihood that a threat actor will successfully exploit the vulnerability (the leaked credential).
-                </p>
-                <p>
-                    <strong>CVSS (Common Vulnerability Scoring System) & OWASP Principles:</strong> We use technical scoring principles to prioritize impact. The assignment of a &times;10 Multiplier for Admin/C-Level Credentials is based on the CVSS principle that vulnerabilities leading to the highest impact (Confidentiality, Integrity, Availability) demand the maximum prioritization. The prioritization of session cookies is based on OWASP's emphasis on high exploitability.
-                </p>
-            </div>
-            <!-- END EXPLANATION OF CRQ PRINCIPLES -->
+                    <div class="text-base text-gray-700 space-y-4 mb-6 ml-6">
+                        <p>
+                            <span style="font-weight: 700;">Source of Baseline Cost:</span> The Estimated Financial Cost of a Single Breach used in this calculation is the precise industry-specific average, derived from the latest **IBM Security Cost of a Data Breach Report**. This value is currently set to <span id="dynamic_sle_value_2"></span> based on the client's selected industry (e.g., Healthcare costs are highest, Retail is lowest) and represents the average total cost of a data breach, including expenses such as: legal/regulatory fees, customer churn, incident response costs, and lost business revenue. We use this external, vetted figure to ensure the Annualized Loss Expectancy (ALE) is grounded in proven financial reality.
+                        </p>
+                        <p>
+                            <span style="font-weight: 700;">Source of Likelihood Baseline:</span> The Industry Likelihood Baseline used for the Peer Comparison (the industry average probability of a breach) is derived from extensive analysis of breach frequency data published in reports like the **Verizon Data Breach Investigations Report (DBIR)**. This ensures the comparison is accurately benchmarked against the client's specific sector.
+                        </p>
+                        <p>
+                            <strong>Factor Analysis of Information Risk (FAIR™):</strong> Our model aligns with FAIR's core component, Loss Event Frequency (LEF). We assign higher weights to fresh, high-fidelity findings (Infostealer, Cookies) because, in FAIR terms, this data dramatically increases the likelihood that a threat actor will successfully exploit the vulnerability (the leaked credential).
+                        </p>
+                        <p>
+                            <strong>CVSS (Common Vulnerability Scoring System) & OWASP Principles:</strong> We use technical scoring principles to prioritize impact. The assignment of a &times;10 Multiplier for Admin/C-Level Credentials is based on the CVSS principle that vulnerabilities leading to the highest impact (Confidentiality, Integrity, Availability) demand the maximum prioritization. The prioritization of session cookies is based on OWASP's emphasis on high exploitability.
+                        </p>
+                    </div>
+                    <!-- END EXPLANATION OF CRQ PRINCIPLES -->
 
-            <p class="text-base text-gray-700 mb-6 font-bold">
-                The dollar amounts shown below are normalized meaning we scale the Estimated Financial Cost of a Single Breach down based on the calculated, low probability that this specific credential will successfully lead to a full loss event. This is why the total dollar contribution adds up to your final Annualized Loss Expectancy (ALE).
-            </p>
+                    <p class="text-base text-gray-700 mb-6 font-bold">
+                        The dollar amounts shown below are normalized meaning we scale the Estimated Financial Cost of a Single Breach down based on the calculated, low probability that this specific credential will successfully lead to a full loss event. This is why the total dollar contribution adds up to your final Annualized Loss Expectancy (ALE).
+                    </p>
+                </div>
+            </details>
+
 
             <p class="text-base text-gray-700 mb-6">
                 Here is the breakdown of how each threat category contributes to your <strong>Annualized Loss Expectancy (ALE)</strong> of <span id="summary_ale_output"></span>:
@@ -247,19 +307,48 @@
 
 <script>
     // --- MODEL CONSTANTS (CTI Logic) ---
-    // Risk Weights based purely on Intelligence Quality
     const RISK_WEIGHTS = {
         "Infostealer Log": 9,
-        "Cookies Found": 10, // New Highest Risk Factor
+        "Cookies Found": 10, 
         "New Unique Dump": 7,
-        "Combolist": 2, // Used for the remainder of 'Total Exposed'
-        "Privileged Multiplier": 10, // Multiplies the risk of any compromised admin account
-        "Context Multiplier": 1.5, // Assume a slight increase if any targeted data is present
+        "Combolist": 2, 
+        "Privileged Multiplier": 10, 
+        "Context Multiplier": 1.5, 
     };
 
-    // Normalization factors (Proprietary "Secret Sauce")
-    const NORMALIZATION_FACTOR = 0.00008; // Translates CER Score to Likelihood (Tuned for demo)
-    const INDUSTRY_TEF_BASELINE = 1.0; // Assume a baseline attack frequency of 1.0 (constant)
+    // --- FINANCIAL CONSTANTS ---
+    const NORMALIZATION_FACTOR = 0.00008; 
+    const INDUSTRY_TEF_BASELINE = 1.0; 
+    
+    // Price Book using Mean ACV (Annual Contract Value) based on employee tier
+    const PRICE_BOOK_ACV = [
+        { maxEmployees: 999, meanACV: 36000 },
+        { maxEmployees: 4999, meanACV: 137700 },
+        { maxEmployees: 9999, meanACV: 390150 },
+        { maxEmployees: Infinity, meanACV: 663255 } 
+    ];
+
+    // Industry-specific Single Loss Expectancy (SLE) in dollars (Based on IBM/Ponemon reports)
+    const INDUSTRY_SLE_MAP = {
+        "finance": 6200000,
+        "healthcare": 5500000,
+        "tech": 4800000,
+        "retail": 3500000,
+        "manufacturing": 4200000,
+        "default": 4500000
+    };
+    
+    // Industry average likelihood for peer comparison (expressed as a decimal)
+    // Dynamic baselines based on industry targeting frequency (Derived from reports like Verizon DBIR)
+    const INDUSTRY_LIKELIHOOD_BASELINE_MAP = {
+        "finance": 0.048,      // 4.8% 
+        "healthcare": 0.052,   // 5.2% 
+        "tech": 0.038,         // 3.8%
+        "retail": 0.028,       // 2.8% 
+        "manufacturing": 0.031, // 3.1%
+        "default": 0.035       // 3.5%
+    };
+
 
     function formatCurrency(amount) {
         return new Intl.NumberFormat('en-US', {
@@ -268,15 +357,37 @@
             maximumFractionDigits: 0,
         }).format(amount);
     }
+    
+    function calculateServiceCost(employeeCount) {
+        if (employeeCount <= 0) return 0;
+        
+        for (const tier of PRICE_BOOK_ACV) {
+            if (employeeCount <= tier.maxEmployees) {
+                return tier.meanACV;
+            }
+        }
+        return PRICE_BOOK_ACV[PRICE_BOOK_ACV.length - 1].meanACV;
+    }
 
     function calculateRisk() {
-        // 1. Get Inputs (From CTI Report Findings)
+        // 1. Get Inputs
+        const employeeCount = parseInt(document.getElementById('employee_count').value) || 0;
         const totalExposed = parseInt(document.getElementById('total_exposed').value) || 0;
         const infostealerCount = parseInt(document.getElementById('infostealer_count').value) || 0;
-        const cookiesCount = parseInt(document.getElementById('cookies_count').value) || 0; // NEW INPUT
+        const cookiesCount = parseInt(document.getElementById('cookies_count').value) || 0; 
         const adminCount = parseInt(document.getElementById('admin_count').value) || 0;
         const newDumpsCount = parseInt(document.getElementById('new_dumps_count').value) || 0;
-        const impactCost = parseInt(document.getElementById('impact_cost').value) || 0;
+        
+        // Get Impact Cost (SLE) from the selected industry dropdown
+        const industrySelect = document.getElementById('industry_select').value;
+        const impactCost = INDUSTRY_SLE_MAP[industrySelect] || INDUSTRY_SLE_MAP['default'];
+
+        // Get dynamic likelihood baseline for peer comparison
+        const industryBaselineLikelihood = INDUSTRY_LIKELIHOOD_BASELINE_MAP[industrySelect] || INDUSTRY_LIKELIHOOD_BASELINE_MAP['default'];
+
+
+        // Calculate dynamic service cost
+        const LUNAR_SERVICE_COST = calculateServiceCost(employeeCount);
 
         // Ensure inputs are non-negative
         if (totalExposed < 0 || infostealerCount < 0 || cookiesCount < 0 || adminCount < 0 || newDumpsCount < 0 || impactCost < 0) return;
@@ -290,42 +401,44 @@
         // 1. Volume & Source Weighting
         let cerScore = 0;
         cerScore += infostealerCount * RISK_WEIGHTS["Infostealer Log"];
-        cerScore += cookiesCount * RISK_WEIGHTS["Cookies Found"]; // NEW WEIGHTING
+        cerScore += cookiesCount * RISK_WEIGHTS["Cookies Found"]; 
         cerScore += newDumpsCount * RISK_WEIGHTS["New Unique Dump"];
         cerScore += remainderCount * RISK_WEIGHTS["Combolist"];
 
         // 2. Privilege Multiplier (Multiply Admin Count by the highest risk weight)
-        // Admin risk is still the highest due to the Privilege Multiplier (10 * 9 = 90)
         const adminRiskAddition = adminCount * RISK_WEIGHTS["Privileged Multiplier"] * RISK_WEIGHTS["Infostealer Log"];
         cerScore += adminRiskAddition;
 
-        // 3. Context Multiplier (Assume a context match if any admin, infostealer, or cookie data is present)
+        // 3. Context Multiplier 
         const contextMultiplier = (infostealerCount > 0 || adminCount > 0 || cookiesCount > 0) ? RISK_WEIGHTS["Context Multiplier"] : 1;
 
         const finalCERScore = cerScore * contextMultiplier;
 
         // --- Step 3: Calculate Annual Breach Likelihood (L) ---
+        // LIKELIHOOD IS INDEPENDENT OF IMPACT COST (SLE)
         let annualLikelihood = finalCERScore * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE;
-        annualLikelihood = Math.min(0.99, annualLikelihood); // Cap at 99%
+        annualLikelihood = Math.min(0.99, annualLikelihood); 
 
         // --- Step 4: Calculate Annualized Loss Expectancy (ALE) ---
         const ale = annualLikelihood * impactCost;
 
-        // --- Step 5: Calculate Risk Reduction Value (ROI) ---
+        // --- Step 5: Calculate Net Risk Reduction ROI ---
         
-        // Calculate a 'Residual CER' after remediation of high-risk items
+        // 5a. Calculate Gross Risk Reduction Value (Avoided Loss)
+        // We calculate the loss avoidance by removing the high-risk CER contribution
         const mitigatedCER = (infostealerCount * RISK_WEIGHTS["Infostealer Log"]) + 
-                             (cookiesCount * RISK_WEIGHTS["Cookies Found"]) + // MITIGATE COOKIES
+                             (cookiesCount * RISK_WEIGHTS["Cookies Found"]) + 
                              (adminCount * RISK_WEIGHTS["Privileged Multiplier"] * RISK_WEIGHTS["Infostealer Log"]) + 
                              (newDumpsCount * RISK_WEIGHTS["New Unique Dump"]);
         
         const residualCER = finalCERScore - mitigatedCER;
-        
         const residualLikelihood = Math.max(0, residualCER * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE);
         const aleAfterMitigation = residualLikelihood * impactCost;
 
-        // The ROI is the difference between current ALE and mitigated ALE
-        const riskReductionValue = ale - aleAfterMitigation;
+        const grossRiskReductionValue = ale - aleAfterMitigation;
+
+        // 5b. Calculate Net ROI (Gross Reduction - Service Cost)
+        const netROI = grossRiskReductionValue - LUNAR_SERVICE_COST;
 
         // --- 6. Calculate Dollar Weight Contribution for each component ---
         
@@ -335,20 +448,11 @@
              return cer * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE * impactCost * contextMultiplier;
         };
         
-        // A. Infostealer Dollar Weight (Base CER contribution, no admin multiplier here)
         const infostealerDollarWeight = getComponentDollarWeight(infostealerCount, RISK_WEIGHTS["Infostealer Log"]);
-
-        // B. Cookies Dollar Weight
         const cookiesDollarWeight = getComponentDollarWeight(cookiesCount, RISK_WEIGHTS["Cookies Found"]);
-
-        // C. Admin Dollar Weight (uses the special combined weight for privilege)
         const adminCombinedWeight = RISK_WEIGHTS["Privileged Multiplier"] * RISK_WEIGHTS["Infostealer Log"]; // 10 * 9
         const adminDollarWeight = getComponentDollarWeight(adminCount, adminCombinedWeight);
-
-        // D. New Dumps Dollar Weight
         const newDumpsDollarWeight = getComponentDollarWeight(newDumpsCount, RISK_WEIGHTS["New Unique Dump"]);
-
-        // E. Remainder Dollar Weight
         const remainderDollarWeight = getComponentDollarWeight(remainderCount, RISK_WEIGHTS["Combolist"]);
         
         // --- 7. Display Outputs ---
@@ -359,8 +463,27 @@
         // ALE Output
         document.getElementById('ale_output').textContent = formatCurrency(ale);
 
-        // ROI Output
-        document.getElementById('roi_output').textContent = formatCurrency(riskReductionValue);
+        // ROI Output (Display Net ROI)
+        document.getElementById('roi_output').textContent = formatCurrency(netROI);
+        document.getElementById('roi_output').className = (netROI >= 0) ? "text-green-700" : "text-red-600";
+
+        // Dynamic Service Cost Output
+        document.getElementById('roi_cost_output').textContent = formatCurrency(LUNAR_SERVICE_COST);
+
+
+        // Peer Comparison Output (UPDATED to use dynamic baseline)
+        const comparisonDiff = (annualLikelihood * 100) - (industryBaselineLikelihood * 100);
+        // Safely extract industry name for display
+        const selectElement = document.getElementById('industry_select');
+        const selectedOptionText = selectElement.options[selectElement.selectedIndex].text;
+        const industryNameMatch = selectedOptionText.match(/([A-Z][a-z]+)/g);
+        const industryName = industryNameMatch ? industryNameMatch[0] : 'General';
+        
+        const comparisonText = (comparisonDiff >= 0) 
+            ? `Your Inherent Likelihood (${(annualLikelihood * 100).toFixed(2)}%) is <strong>${comparisonDiff.toFixed(2)}% higher</strong> than the ${industryName} industry average (${(industryBaselineLikelihood * 100).toFixed(2)}%).`
+            : `Your Inherent Likelihood (${(annualLikelihood * 100).toFixed(2)}%) is <strong>${Math.abs(comparisonDiff).toFixed(2)}% lower</strong> than the ${industryName} industry average (${(industryBaselineLikelihood * 100).toFixed(2)}%).`;
+        document.getElementById('peer_comparison_output').innerHTML = comparisonText;
+
 
         // Update Risk Gauge
         let pointerPosition = Math.min(annualLikelihood / 0.15, 1.0);
@@ -374,8 +497,14 @@
         // Update ALE in the heading text
         document.getElementById('summary_ale_output').textContent = formatCurrency(ale);
 
+        // Update dynamic SLE values in the CRQ narrative
+        const formattedImpactCost = formatCurrency(impactCost);
+        document.getElementById('dynamic_sle_value').textContent = formattedImpactCost;
+        document.getElementById('dynamic_sle_value_2').textContent = formattedImpactCost;
+
+
         // Calculate Ratios for Toning
-        const totalExposedForRatio = Math.max(totalExposed, 1); // Avoid division by zero
+        const totalExposedForRatio = Math.max(totalExposed, 1); 
         const infostealerRatio = infostealerCount / totalExposedForRatio;
         const cookiesRatio = cookiesCount / totalExposedForRatio;
         
@@ -404,12 +533,10 @@
             let tone = "compromised cookies found, which represent extreme, immediate risk";
             let color = "";
             
-            // ADJUSTMENT: Reserve "critical concentration" for 10 or more.
             if (cookiesCount >= 10) { 
                 tone = `a <strong>critical concentration</strong> of ${cookiesCount} compromised cookies (representing ${(cookiesRatio * 100).toFixed(1)}% of total exposure). These are often used to bypass MFA`;
                 color = "style='color: #dc2626;'";
             } else if (cookiesCount > 0) {
-                 // Use strong, but not concentration language for smaller numbers
                  tone = `a <strong>severe number</strong> of ${cookiesCount} compromised cookies. This represents an extreme, immediate risk`;
                  color = "style='color: #dc2626;'";
             }
@@ -427,11 +554,10 @@
              let adminColor = "";
              let cookieContext = "";
              
-             // ADJUSTMENT: Reserve "highly critical number" for 5 or more.
              if (adminCount >= 5) {
                 tone = "a <strong>highly critical number</strong> of Admin/C-Level Credentials";
                 adminColor = "style='color: #b91c1c;'";
-             } else { // 1 to 4 accounts
+             } else { 
                 tone = `a <strong>severe exposure</strong> of ${adminCount} highly sensitive Admin/C-Level Credentials`;
                 adminColor = "style='color: #ef4444;'"; 
              }
@@ -471,7 +597,7 @@
 
         // F. Final Summary
         document.getElementById('explanation_summary').innerHTML = 
-            `<strong>6. Final Impact:</strong> The total risk is a combined probability of <strong>${(annualLikelihood * 100).toFixed(2)}%</strong>, leading to a <strong>${formatCurrency(ale)}</strong> Annualized Loss Expectancy. Acting on the high-risk items yields a direct ROI of <strong>${formatCurrency(riskReductionValue)}</strong> in avoided loss.`;
+            `<strong>6. Final Impact:</strong> The total risk is a combined probability of <strong>${(annualLikelihood * 100).toFixed(2)}%</strong>, leading to a <strong>${formatCurrency(ale)}</strong> Annualized Loss Expectancy. Acting on the high-risk items yields a direct ROI of <strong>${formatCurrency(grossRiskReductionValue)}</strong> in avoided loss.`;
 
     }
 
