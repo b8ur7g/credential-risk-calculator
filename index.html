@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inherent Credential Risk Quantifier (CTI Model)</title>
+    <title>Inherent Credential Risk Quantifier</title>
     <!-- Load Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -73,11 +73,10 @@
     <div class="container mx-auto">
         <header class="mb-10 p-6 bg-white rounded-xl shadow-lg border-t-4 border-indigo-600">
             <h1 class="3xl font-bold text-gray-800">
-                Inherent Credential Risk Quantifier (CTI Product Demo)
+                Inherent Credential Risk Quantifier 
             </h1>
             <p class="text-lg text-gray-500 mt-1">
-                Calculates the financial risk exposure based purely on external Dark Web intelligence.
-            </p>
+                Calculates the financial risk exposure based purely on intelligence from Lunar.
         </header>
 
         <div class="flex flex-col lg:flex-row gap-8">
@@ -85,7 +84,7 @@
             <!-- INPUT PANEL (CTI Report Findings) -->
             <div class="input-card flex-1 p-6 rounded-xl">
                 <h2 class="text-2xl font-semibold text-indigo-700 mb-6">
-                    CTI Report Inputs <span class="text-base font-normal text-gray-500">(Data from our tool)</span>
+                    Compromised Access <span class="text-base font-normal text-gray-500">(Data from Lunar)</span>
                 </h2>
 
                 <!-- Input Group: Total Exposed -->
@@ -330,26 +329,28 @@
 
         // --- 6. Calculate Dollar Weight Contribution for each component ---
         
-        // A. Infostealer Dollar Weight
-        const infostealerCER = infostealerCount * RISK_WEIGHTS["Infostealer Log"];
-        const infostealerDollarWeight = infostealerCER * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE * impactCost * contextMultiplier;
+        // Calculate the individual CER for each component, then apply the full context and financial multipliers
+        const getComponentDollarWeight = (count, weight) => {
+             const cer = count * weight;
+             return cer * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE * impactCost * contextMultiplier;
+        };
+        
+        // A. Infostealer Dollar Weight (Base CER contribution, no admin multiplier here)
+        const infostealerDollarWeight = getComponentDollarWeight(infostealerCount, RISK_WEIGHTS["Infostealer Log"]);
 
-        // B. Cookies Dollar Weight (NEW)
-        const cookiesCER = cookiesCount * RISK_WEIGHTS["Cookies Found"];
-        const cookiesDollarWeight = cookiesCER * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE * impactCost * contextMultiplier;
+        // B. Cookies Dollar Weight
+        const cookiesDollarWeight = getComponentDollarWeight(cookiesCount, RISK_WEIGHTS["Cookies Found"]);
 
-        // C. Admin Dollar Weight
-        const adminCER = adminCount * RISK_WEIGHTS["Privileged Multiplier"] * RISK_WEIGHTS["Infostealer Log"];
-        const adminDollarWeight = adminCER * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE * impactCost * contextMultiplier;
+        // C. Admin Dollar Weight (uses the special combined weight for privilege)
+        const adminCombinedWeight = RISK_WEIGHTS["Privileged Multiplier"] * RISK_WEIGHTS["Infostealer Log"]; // 10 * 9
+        const adminDollarWeight = getComponentDollarWeight(adminCount, adminCombinedWeight);
 
         // D. New Dumps Dollar Weight
-        const newDumpsCER = newDumpsCount * RISK_WEIGHTS["New Unique Dump"];
-        const newDumpsDollarWeight = newDumpsCER * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE * impactCost * contextMultiplier;
+        const newDumpsDollarWeight = getComponentDollarWeight(newDumpsCount, RISK_WEIGHTS["New Unique Dump"]);
 
         // E. Remainder Dollar Weight
-        const remainderCER = remainderCount * RISK_WEIGHTS["Combolist"];
-        const remainderDollarWeight = remainderCER * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE * impactCost * contextMultiplier;
-
+        const remainderDollarWeight = getComponentDollarWeight(remainderCount, RISK_WEIGHTS["Combolist"]);
+        
         // --- 7. Display Outputs ---
 
         // Likelihood Output
@@ -368,30 +369,105 @@
         // Update Priority Alert
         updatePriorityAlert(annualLikelihood);
         
-        // --- 8. Dynamic Transparency Text Update (Non-Technical) ---
+        // --- 8. Dynamic Transparency Text Update (Conditional Toning) ---
         
         // Update ALE in the heading text
         document.getElementById('summary_ale_output').textContent = formatCurrency(ale);
 
-        // A. Infostealer Breakout
-        document.getElementById('explanation_infostealer').innerHTML = 
-            `<strong>1. Infostealer Logs:</strong> We found <strong>${infostealerCount}</strong> severe logs. These are the <strong>most exploitable</strong> threats (fresh session data/credentials) and, by themselves, account for <strong>${formatCurrency(infostealerDollarWeight)}</strong> of your total expected loss.`;
+        // Calculate Ratios for Toning
+        const totalExposedForRatio = Math.max(totalExposed, 1); // Avoid division by zero
+        const infostealerRatio = infostealerCount / totalExposedForRatio;
+        const cookiesRatio = cookiesCount / totalExposedForRatio;
         
-        // B. Cookies Breakout (NEW)
-        document.getElementById('explanation_cookies').innerHTML = 
-            `<strong>2. Compromised Session Cookies:</strong> The <strong>${cookiesCount}</strong> compromised cookies found represent <strong>extreme, immediate risk</strong>. They are often used to bypass MFA, driving <strong>${formatCurrency(cookiesDollarWeight)}</strong> of your total expected loss.`;
+        // A. Infostealer Breakout
+        if (infostealerCount === 0) {
+            document.getElementById('explanation_infostealer').innerHTML = 
+                `<strong>1. Infostealer Logs:</strong> We found <strong>zero</strong> Infostealer Logs, confirming no immediate, high-fidelity threat from this source.`;
+        } else {
+            let tone = "logs found. These are the most exploitable threats";
+            let color = "";
+            if (infostealerCount >= 20 || infostealerRatio >= 0.08) { 
+                 tone = `a <strong>critical concentration</strong> of ${infostealerCount} highly severe logs (representing ${(infostealerRatio * 100).toFixed(1)}% of total exposure). This represents an immediate, escalated threat—the attacker's key to an <strong>initial foothold</strong>`;
+                 color = "style='color: #ef4444;'";
+            } else if (infostealerCount > 0 && infostealerCount < 5) {
+                tone = "a few scattered logs. This is a low volume, manageable threat";
+            }
+            document.getElementById('explanation_infostealer').innerHTML = 
+                `<strong>1. Infostealer Logs:</strong> We found <strong ${color}>${infostealerCount}</strong> ${tone} (fresh session data/credentials) and, by themselves, account for <strong>${formatCurrency(infostealerDollarWeight)}</strong> of your total expected loss.`;
+        }
+
+        // B. Cookies Breakout
+        if (cookiesCount === 0) {
+            document.getElementById('explanation_cookies').innerHTML =
+                `<strong>2. Compromised Session Cookies:</strong> We found <strong>zero</strong> Compromised Session Cookies. This is excellent, as there is no immediate threat that could bypass MFA.`;
+        } else {
+            let tone = "compromised cookies found, which represent extreme, immediate risk";
+            let color = "";
+            
+            // ADJUSTMENT: Reserve "critical concentration" for 10 or more.
+            if (cookiesCount >= 10) { 
+                tone = `a <strong>critical concentration</strong> of ${cookiesCount} compromised cookies (representing ${(cookiesRatio * 100).toFixed(1)}% of total exposure). These are often used to bypass MFA`;
+                color = "style='color: #dc2626;'";
+            } else if (cookiesCount > 0) {
+                 // Use strong, but not concentration language for smaller numbers
+                 tone = `a <strong>severe number</strong> of ${cookiesCount} compromised cookies. This represents an extreme, immediate risk`;
+                 color = "style='color: #dc2626;'";
+            }
+
+            document.getElementById('explanation_cookies').innerHTML = 
+                `<strong>2. Compromised Session Cookies:</strong> The <strong ${color}>${cookiesCount}</strong> ${tone}, driving <strong>${formatCurrency(cookiesDollarWeight)}</strong> of your total expected loss. This is the <strong>attacker's direct path past your security investment.</strong>`;
+        }
 
         // C. Admin Breakout
-        document.getElementById('explanation_admin').innerHTML = 
-            `<strong>3. Admin Credentials:</strong> Your <strong>${adminCount}</strong> <strong>Admin/C-Level Credentials</strong> are exposed. Due to their immense privilege, these high-value targets alone drive <strong>${formatCurrency(adminDollarWeight)}</strong> of your expected annual loss.`;
-        
+        if (adminCount === 0) {
+            document.getElementById('explanation_admin').innerHTML =
+                `<strong>3. Admin Credentials:</strong> We found <strong>zero</strong> Admin/C-Level Credentials exposed. This eliminates the risk of a catastrophic, privileged compromise from external sources.`;
+        } else {
+             let tone = "Admin/C-Level Credentials are exposed";
+             let adminColor = "";
+             let cookieContext = "";
+             
+             // ADJUSTMENT: Reserve "highly critical number" for 5 or more.
+             if (adminCount >= 5) {
+                tone = "a <strong>highly critical number</strong> of Admin/C-Level Credentials";
+                adminColor = "style='color: #b91c1c;'";
+             } else { // 1 to 4 accounts
+                tone = `a <strong>severe exposure</strong> of ${adminCount} highly sensitive Admin/C-Level Credentials`;
+                adminColor = "style='color: #ef4444;'"; 
+             }
+             
+             if (cookiesCount > 0) {
+                 cookieContext = ` This is compounded by the <strong>${cookiesCount} compromised cookies</strong> also found, which could bypass MFA defenses.`;
+             }
+            document.getElementById('explanation_admin').innerHTML = 
+                `<strong>3. Admin Credentials:</strong> Your <strong ${adminColor}>${adminCount}</strong> ${tone}${cookieContext}. Due to their immense privilege, these high-value targets alone drive <strong>${formatCurrency(adminDollarWeight)}</strong> of your expected annual loss. This represents a <strong>direct loss of system control</strong> if exploited.`;
+        }
+
         // D. New Dumps Breakout
-        document.getElementById('explanation_new_dumps').innerHTML = 
-            `<strong>4. New Unique Dumps:</strong> The <strong>${newDumpsCount}</strong> recent breach dumps found represent a medium-level threat (high confidence, single source), contributing <strong>${formatCurrency(newDumpsDollarWeight)}</strong> to the total risk.`;
+        if (newDumpsCount === 0) {
+            document.getElementById('explanation_new_dumps').innerHTML =
+                `<strong>4. New Unique Dumps:</strong> We found <strong>zero</strong> New Unique Breach Dumps, meaning no recent, verifiable database compromises are impacting your organization.`;
+        } else {
+            let tone = "recent breach dumps found";
+            if (newDumpsCount >= 50) {
+                 tone = "a significant volume of recent breach dumps";
+            }
+            document.getElementById('explanation_new_dumps').innerHTML = 
+                `<strong>4. New Unique Dumps:</strong> The <strong>${newDumpsCount}</strong> ${tone} represent a medium-level threat (high confidence, single source), contributing <strong>${formatCurrency(newDumpsDollarWeight)}</strong> to the total risk.`;
+        }
 
         // E. Remainder/Baseline Breakout
-        document.getElementById('explanation_remainder').innerHTML = 
-            `<strong>5. Baseline Exposure:</strong> The remaining <strong>${remainderCount}</strong> credentials are the total exposed emails minus the four high-risk categories. They still contribute <strong>${formatCurrency(remainderDollarWeight)}</strong>, proving that even outdated data poses a financial threat via credential stuffing.`;
+        if (remainderCount === 0) {
+            document.getElementById('explanation_remainder').innerHTML =
+                `<strong>5. Baseline Exposure:</strong> The remaining credentials beyond the high-risk categories total <strong>zero</strong>, confirming that all found compromise is contained within the categories above.`;
+        } else {
+             let tone = "The remaining credentials are the total exposed emails minus the four high-risk categories";
+             if (remainderCount >= 500) {
+                tone = "<span style='font-weight: 600;'>A very large volume</span> of remaining credentials are the total exposed emails minus the four high-risk categories";
+             }
+            document.getElementById('explanation_remainder').innerHTML = 
+                `<strong>5. Baseline Exposure:</strong> ${tone}. They still contribute <strong>${formatCurrency(remainderDollarWeight)}</strong>, proving that even outdated data poses a financial threat via credential stuffing.`;
+        }
 
         // F. Final Summary
         document.getElementById('explanation_summary').innerHTML = 
