@@ -135,7 +135,7 @@
                     </label>
                     <input type="number" id="impact_cost" value="4500000" min="100000" oninput="calculateRisk()" class="w-full">
                     <p class="text-xs text-gray-500 mt-1">
-                        (Sourced from industry reports like IBM/Ponemon.)
+                        (Sourced from IBM/Ponemon.)
                     </p>
                 </div>
             </div>
@@ -200,9 +200,41 @@
                 Model Transparency: Financial Value of Each Threat
             </h3>
             <p class="text-base text-gray-700 mb-6">
-                The financial figures above are calculated by assigning a weighted risk value to <strong>every single compromised credential</strong> found, based on the fidelity and exploitability of the data source. Here is the breakdown of how each threat category contributes to your <strong>Annualized Loss Expectancy (ALE)</strong> of <span id="summary_ale_output"></span>:
+                The financial figures above are calculated by assigning a weighted risk value to <strong>every single compromised credential</strong> found, based on the fidelity and exploitability of the data source.
             </p>
-            <ul class="list-disc list-inside text-base text-gray-700 space-y-4">
+            
+            <!-- EXPLANATION OF CRQ PRINCIPLES -->
+            <p class="text-base text-gray-700 mb-6">
+                A credential is assigned a dollar value through a process called <strong>Cyber Risk Quantification (CRQ)</strong>, a method adopted from finance to measure risk in monetary terms. We base our weighting on established industry standards like FAIR (Factor Analysis of Information Risk) and CVSS (Common Vulnerability Scoring System), which prioritize two key factors: 
+                <br><br>
+                1. <span style="font-weight: 600;">Exploitability:</span> How easily can an attacker use the compromised data? Threats that bypass modern security (like session cookies bypassing MFA) are weighted highest.
+                <br>
+                2. <span style="font-weight: 600;">Impact:</span> What is the potential damage if the credential is used? Privileged accounts (C-Level/Admin) are weighted far higher because a compromise means a catastrophic loss.
+                <br><br>
+                This proprietary, quantified risk is then combined with the client's input for the <strong>Estimated Financial Cost of a Single Breach</strong> to provide the final figure for your expected annual loss.
+            </p>
+
+            <div class="text-base text-gray-700 space-y-4 mb-6 ml-6">
+                <p>
+                    <strong>Source of Baseline Cost:</strong> The default cost for a single breach (\$4,500,000) is derived from extensive annual industry studies, primarily those published by <strong>IBM Security (Cost of a Data Breach Report)</strong> and <strong>Verizon (Data Breach Investigations Report - DBIR)</strong>. These reports analyze thousands of real-world security incidents. The final figure represents the average total cost of a data breach, which includes expenses such as: legal/regulatory fees, customer churn, incident response costs, and lost business revenue. We use this external, vetted figure to ensure the Annualized Loss Expectancy (ALE) is grounded in proven financial reality.
+                </p>
+                <p>
+                    <strong>Factor Analysis of Information Risk (FAIR™):</strong> Our model aligns with FAIR's core component, Loss Event Frequency (LEF). We assign higher weights to fresh, high-fidelity findings (Infostealer, Cookies) because, in FAIR terms, this data dramatically increases the likelihood that a threat actor will successfully exploit the vulnerability (the leaked credential).
+                </p>
+                <p>
+                    <strong>CVSS (Common Vulnerability Scoring System) & OWASP Principles:</strong> We use technical scoring principles to prioritize impact. The assignment of a &times;10 Multiplier for Admin/C-Level Credentials is based on the CVSS principle that vulnerabilities leading to the highest impact (Confidentiality, Integrity, Availability) demand the maximum prioritization. The prioritization of session cookies is based on OWASP's emphasis on high exploitability.
+                </p>
+            </div>
+            <!-- END EXPLANATION OF CRQ PRINCIPLES -->
+
+            <p class="text-base text-gray-700 mb-6 font-bold">
+                The dollar amounts shown below are normalized meaning we scale the Estimated Financial Cost of a Single Breach down based on the calculated, low probability that this specific credential will successfully lead to a full loss event. This is why the total dollar contribution adds up to your final Annualized Loss Expectancy (ALE).
+            </p>
+
+            <p class="text-base text-gray-700 mb-6">
+                Here is the breakdown of how each threat category contributes to your <strong>Annualized Loss Expectancy (ALE)</strong> of <span id="summary_ale_output"></span>:
+            </p>
+            <ul class="list-none text-base text-gray-700 space-y-4">
                 <li id="explanation_infostealer"></li>
                 <li id="explanation_cookies"></li>
                 <li id="explanation_admin"></li>
