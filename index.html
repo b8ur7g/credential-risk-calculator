@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inherent Credential Risk Quantifier (CTI Model)</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .input-card {
+            background-color: #ffffff;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .output-card {
+            background-color: #eef2ff; /* Light Indigo */
+            border-left: 4px solid #4f46e5;
+        }
+        .risk-gauge-container {
+            position: relative;
+            height: 20px;
+        }
+        .risk-gauge {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to right, #10b981 0%, #facc15 50%, #ef4444 80%); /* Green to Yellow to Red */
+            border-radius: 9999px;
+        }
+        .pointer {
+            position: absolute;
+            height: 30px;
+            width: 5px;
+            background-color: #1f2937;
+            top: -5px;
+            border-radius: 9999px;
+            transform: translateX(-50%);
+            transition: left 0.5s ease-out;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+        }
+        .pointer::after {
+            content: '';
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid #1f2937;
+        }
+        .output-box strong {
+            font-size: 2.5rem;
+            display: block;
+        }
+        /* Custom styles for Tailwind to ensure consistency */
+        input[type="number"] {
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body class="p-8">
+
+    <div class="container mx-auto">
+        <header class="mb-10 p-6 bg-white rounded-xl shadow-lg border-t-4 border-indigo-600">
+            <h1 class="text-3xl font-bold text-gray-800">
+                Inherent Credential Risk Quantifier (CTI Product Demo)
+            </h1>
+            <p class="text-lg text-gray-500 mt-1">
+                Calculates the financial risk exposure based purely on external Dark Web intelligence.
+            </p>
+        </header>
+
+        <div class="flex flex-col lg:flex-row gap-8">
+
+            <!-- INPUT PANEL (CTI Report Findings) -->
+            <div class="input-card flex-1 p-6 rounded-xl">
+                <h2 class="text-2xl font-semibold text-indigo-700 mb-6">
+                    CTI Report Inputs <span class="text-base font-normal text-gray-500">(Data from our tool)</span>
+                </h2>
+
+                <!-- Input Group: Total Exposed -->
+                <div class="mb-4">
+                    <label for="total_exposed" class="block text-sm font-medium text-gray-700 mb-1">
+                        1. Total Compromised Corporate Emails Found
+                    </label>
+                    <input type="number" id="total_exposed" value="280" min="0" oninput="calculateRisk()" class="w-full">
+                </div>
+
+                <!-- Input Group: Infostealer Count -->
+                <div class="mb-4">
+                    <label for="infostealer_count" class="block text-sm font-medium text-gray-700 mb-1">
+                        2. Count of Infostealer Logs Found (Highest Risk)
+                    </label>
+                    <input type="number" id="infostealer_count" value="20" min="0" oninput="calculateRisk()" class="w-full">
+                </div>
+
+                <!-- Input Group: Privileged Count -->
+                <div class="mb-4">
+                    <label for="admin_count" class="block text-sm font-medium text-gray-700 mb-1">
+                        3. Count of C-Level/Admin Credentials Found
+                    </label>
+                    <input type="number" id="admin_count" value="3" min="0" oninput="calculateRisk()" class="w-full">
+                </div>
+
+                <!-- Input Group: New Unique Dumps -->
+                <div class="mb-4">
+                    <label for="new_dumps_count" class="block text-sm font-medium text-gray-700 mb-1">
+                        4. Count of New Unique Breach Dumps (< 6 mos.)
+                    </label>
+                    <input type="number" id="new_dumps_count" value="15" min="0" oninput="calculateRisk()" class="w-full">
+                </div>
+
+                <!-- Input Group: Financial Impact -->
+                <div class="mt-8 pt-4 border-t border-gray-200">
+                    <label for="impact_cost" class="block text-sm font-medium text-gray-700 mb-1">
+                        5. Estimated Financial Cost of a Single Breach (Industry SLE)
+                    </label>
+                    <input type="number" id="impact_cost" value="4500000" min="100000" oninput="calculateRisk()" class="w-full">
+                    <p class="text-xs text-gray-500 mt-1">
+                        (Sourced from industry reports like IBM/Ponemon.)
+                    </p>
+                </div>
+            </div>
+
+            <!-- OUTPUT PANEL -->
+            <div class="output-panel flex-1 rounded-xl p-6 output-card">
+                <h2 class="text-2xl font-semibold text-indigo-700 mb-6">
+                    Quantified Inherent Risk Results
+                </h2>
+
+                <!-- Priority Alert -->
+                <div id="priority_alert" class="priority-alert p-4 rounded-lg mb-6">
+                    RISK PRIORITY: HIGH (Likelihood > 5%)
+                </div>
+
+                <!-- Risk Gauge Visualization -->
+                <div class="mb-8">
+                    <label class="block text-lg font-medium text-gray-800 mb-3">
+                        Annual Inherent Breach Likelihood
+                    </label>
+                    <div class="risk-gauge-container">
+                        <div class="risk-gauge"></div>
+                        <div class="pointer" id="likelihood_pointer"></div>
+                    </div>
+                    <p class="text-center text-3xl font-bold mt-4 text-indigo-700">
+                        <span id="likelihood_output">0.00%</span>
+                    </p>
+                    <p class="text-sm text-gray-600 text-center mt-1">
+                        (Probability of a credential-based breach in the next 12 months given external exposure.)
+                    </p>
+                </div>
+
+                <!-- Financial Metrics -->
+                <div class="grid grid-cols-1 gap-6">
+
+                    <!-- ALE OUTPUT -->
+                    <div class="output-box bg-white p-6 rounded-lg shadow-md">
+                        <p class="text-lg font-medium text-gray-600">1. Annualized Loss Expectancy (ALE)</p>
+                        <strong id="ale_output" class="text-red-600">$0</strong>
+                        <p class="text-sm text-gray-500">
+                            The expected average dollar loss per year from this specific risk vector.
+                        </p>
+                    </div>
+
+                    <!-- RISK REDUCTION ROI -->
+                    <div class="output-box bg-green-50 p-6 rounded-lg shadow-md border-2 border-green-400">
+                        <p class="text-lg font-medium text-gray-800">2. Potential Risk Reduction Value</p>
+                        <strong id="roi_output" class="text-green-700">$0</strong>
+                        <p class="text-sm text-gray-500">
+                            <span class="font-semibold text-green-800">Your Sales Hook:</span> Value avoided if client mitigates all high-risk accounts (e.g., forced reset/MFA rollout).
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    // --- MODEL CONSTANTS (CTI Logic) ---
+    // Risk Weights based purely on Intelligence Quality
+    const RISK_WEIGHTS = {
+        "Infostealer Log": 9,
+        "New Unique Dump": 7,
+        "Combolist": 2, // Used for the remainder of 'Total Exposed'
+        "Privileged Multiplier": 10, // Multiplies the risk of any compromised admin account
+        "Context Multiplier": 1.5, // Assume a slight increase if any targeted data is found
+    };
+
+    // Normalization factors (Proprietary "Secret Sauce")
+    const NORMALIZATION_FACTOR = 0.00008; // Translates CER Score to Likelihood (Tuned for demo)
+    const INDUSTRY_TEF_BASELINE = 1.0; // Assume a baseline attack frequency of 1.0 (constant)
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            maximumFractionDigits: 0,
+        }).format(amount);
+    }
+
+    function calculateRisk() {
+        // 1. Get Inputs (From CTI Report Findings)
+        const totalExposed = parseInt(document.getElementById('total_exposed').value) || 0;
+        const infostealerCount = parseInt(document.getElementById('infostealer_count').value) || 0;
+        const adminCount = parseInt(document.getElementById('admin_count').value) || 0;
+        const newDumpsCount = parseInt(document.getElementById('new_dumps_count').value) || 0;
+        const impactCost = parseInt(document.getElementById('impact_cost').value) || 0;
+
+        // Ensure inputs are non-negative
+        if (totalExposed < 0 || infostealerCount < 0 || adminCount < 0 || newDumpsCount < 0 || impactCost < 0) return;
+
+        // Calculate the remainder (assumed to be lower-risk Combolist/Old Dumps)
+        const highRiskCount = infostealerCount + newDumpsCount;
+        const remainderCount = Math.max(0, totalExposed - highRiskCount);
+
+        // --- Step 2: Calculate Weighted Credential Exposure Risk (CER) Score ---
+
+        // 1. Volume & Source Weighting
+        let cerScore = 0;
+        cerScore += infostealerCount * RISK_WEIGHTS["Infostealer Log"];
+        cerScore += newDumpsCount * RISK_WEIGHTS["New Unique Dump"];
+        cerScore += remainderCount * RISK_WEIGHTS["Combolist"];
+
+        // 2. Privilege Multiplier (Multiply Admin Count by the highest risk weight)
+        const adminRiskAddition = adminCount * RISK_WEIGHTS["Privileged Multiplier"] * RISK_WEIGHTS["Infostealer Log"];
+        cerScore += adminRiskAddition;
+
+        // 3. Context Multiplier (Assume a context match if any admin or infostealer data is present)
+        const contextMultiplier = (infostealerCount > 0 || adminCount > 0) ? RISK_WEIGHTS["Context Multiplier"] : 1;
+
+        const finalCERScore = cerScore * contextMultiplier;
+
+        // --- Step 3: Calculate Annual Breach Likelihood (L) ---
+
+        // Since we have no client control data (MFA), we multiply CER by the Industry TEF (constant)
+        // and normalize to get the Inherent Likelihood.
+        let annualLikelihood = finalCERScore * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE;
+        annualLikelihood = Math.min(0.99, annualLikelihood); // Cap at 99%
+
+        // --- Step 4: Calculate Annualized Loss Expectancy (ALE) ---
+        const ale = annualLikelihood * impactCost;
+
+        // --- Step 5: Calculate Risk Reduction Value (ROI) ---
+        
+        // CTI Sales Pitch: If client mitigates ALL high-risk accounts (Infostealer, Admin, New Dumps),
+        // the remaining risk is only from the lower-risk Combolist matches.
+
+        // Calculate a 'Residual CER' after remediation of high-risk items
+        const mitigatedCER = (infostealerCount * RISK_WEIGHTS["Infostealer Log"]) + 
+                             (adminCount * RISK_WEIGHTS["Privileged Multiplier"] * RISK_WEIGHTS["Infostealer Log"]) + 
+                             (newDumpsCount * RISK_WEIGHTS["New Unique Dump"]);
+        
+        const residualCER = finalCERScore - mitigatedCER;
+        
+        const residualLikelihood = Math.max(0, residualCER * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE);
+        const aleAfterMitigation = residualLikelihood * impactCost;
+
+        // The ROI is the difference between current ALE and mitigated ALE
+        const riskReductionValue = ale - aleAfterMitigation;
+
+
+        // --- 6. Display Outputs ---
+
+        // Likelihood Output
+        document.getElementById('likelihood_output').textContent = `${(annualLikelihood * 100).toFixed(2)}%`;
+
+        // ALE Output
+        document.getElementById('ale_output').textContent = formatCurrency(ale);
+
+        // ROI Output
+        document.getElementById('roi_output').textContent = formatCurrency(riskReductionValue);
+
+        // Update Risk Gauge
+        // Use a visual max of 15% likelihood for pointer movement (15% = 100% of gauge width)
+        let pointerPosition = Math.min(annualLikelihood / 0.15, 1.0);
+        document.getElementById('likelihood_pointer').style.left = `${pointerPosition * 100}%`;
+
+        // Update Priority Alert
+        updatePriorityAlert(annualLikelihood);
+    }
+
+    function updatePriorityAlert(likelihood) {
+        const alertDiv = document.getElementById('priority_alert');
+        let priority, colorClass;
+
+        if (likelihood > 0.10) { // Over 10%
+            priority = "CRITICAL (Immediate Executive Briefing Required)";
+            colorClass = "bg-red-600 text-white";
+        } else if (likelihood > 0.05) { // Over 5%
+            priority = "HIGH (Action Required within 48 Hours)";
+            colorClass = "bg-yellow-400 text-gray-800";
+        } else {
+            priority = "MODERATE (Tracked Exposure)";
+            colorClass = "bg-indigo-500 text-white";
+        }
+
+        alertDiv.className = `p-4 rounded-lg mb-6 text-center font-bold ${colorClass}`;
+        alertDiv.textContent = `RISK PRIORITY: ${priority}`;
+    }
+
+    // Initialize the calculator on load
+    document.addEventListener('DOMContentLoaded', () => {
+        calculateRisk();
+    });
+</script>
+
+</body>
+</html>
