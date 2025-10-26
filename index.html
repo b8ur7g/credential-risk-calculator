@@ -72,7 +72,7 @@
 
     <div class="container mx-auto">
         <header class="mb-10 p-6 bg-white rounded-xl shadow-lg border-t-4 border-indigo-600">
-            <h1 class="text-3xl font-bold text-gray-800">
+            <h1 class="3xl font-bold text-gray-800">
                 Inherent Credential Risk Quantifier (CTI Product Demo)
             </h1>
             <p class="text-lg text-gray-500 mt-1">
@@ -103,11 +103,19 @@
                     </label>
                     <input type="number" id="infostealer_count" value="20" min="0" oninput="calculateRisk()" class="w-full">
                 </div>
+                
+                <!-- NEW Input Group: Cookies Count -->
+                <div class="mb-4">
+                    <label for="cookies_count" class="block text-sm font-medium text-gray-700 mb-1">
+                        3. Count of Compromised Session Cookies Found (Extreme Risk)
+                    </label>
+                    <input type="number" id="cookies_count" value="5" min="0" oninput="calculateRisk()" class="w-full">
+                </div>
 
                 <!-- Input Group: Privileged Count -->
                 <div class="mb-4">
                     <label for="admin_count" class="block text-sm font-medium text-gray-700 mb-1">
-                        3. Count of C-Level/Admin Credentials Found
+                        4. Count of C-Level/Admin Credentials Found
                     </label>
                     <input type="number" id="admin_count" value="3" min="0" oninput="calculateRisk()" class="w-full">
                 </div>
@@ -115,7 +123,7 @@
                 <!-- Input Group: New Unique Dumps -->
                 <div class="mb-4">
                     <label for="new_dumps_count" class="block text-sm font-medium text-gray-700 mb-1">
-                        4. Count of New Unique Breach Dumps (< 6 mos.)
+                        5. Count of New Unique Breach Dumps (< 6 mos.)
                     </label>
                     <input type="number" id="new_dumps_count" value="15" min="0" oninput="calculateRisk()" class="w-full">
                 </div>
@@ -123,7 +131,7 @@
                 <!-- Input Group: Financial Impact -->
                 <div class="mt-8 pt-4 border-t border-gray-200">
                     <label for="impact_cost" class="block text-sm font-medium text-gray-700 mb-1">
-                        5. Estimated Financial Cost of a Single Breach (Industry SLE)
+                        6. Estimated Financial Cost of a Single Breach (Industry SLE)
                     </label>
                     <input type="number" id="impact_cost" value="4500000" min="100000" oninput="calculateRisk()" class="w-full">
                     <p class="text-xs text-gray-500 mt-1">
@@ -177,35 +185,33 @@
                         <p class="text-lg font-medium text-gray-800">2. Potential Risk Reduction Value</p>
                         <strong id="roi_output" class="text-green-700">$0</strong>
                         <p class="text-sm text-gray-500">
-                            The value avoided if client mitigates all high-risk accounts identified in the CTI report.
+                            The value avoided if client mitigates all high-risk accounts identified.
                         </p>
                     </div>
 
                 </div>
-
-                <!-- Model Transparency Section -->
-                <div class="mt-8 pt-4 border-t border-gray-200">
-                    <h3 class="text-xl font-semibold text-indigo-700 mb-4">
-                        Model Transparency: How We Calculate Inherent Risk
-                    </h3>
-                    <p class="text-sm text-gray-700 mb-4">
-                        Our model quantifies your risk based on the **Source Quality** and **Volume** of compromised credentials, without relying on proprietary internal data.
-                    </p>
-                    <ul class="list-disc list-inside text-sm text-gray-600 space-y-2">
-                        <li>
-                            <strong class="text-gray-800">Weighted Credential Exposure (CER) Score:</strong> This score assigns high points (weights) to critical inputs: **Infostealer Logs** (Highest Weight 9), **Admin/C-Level Accounts** ($\times 10$ multiplier), and **New Unique Dumps** (High Weight 7). Lower-quality data receives a lower weight.
-                        </li>
-                        <li>
-                            <strong class="text-gray-800">Annual Likelihood (L):</strong> The final CER Score is converted into a probability using a proprietary normalization factor and industry attack baselines.
-                        </li>
-                        <li>
-                            <strong class="text-gray-800">Annualized Loss Expectancy (ALE):</strong> Calculated by multiplying the Likelihood ($\mathbf{L}$) by the estimated financial cost of a single breach (SLE).
-                        </li>
-                    </ul>
-                </div>
             </div>
 
         </div>
+
+        <!-- MODEL TRANSPARENCY SECTION (Full Width, Below the Fold) -->
+        <div id="model-explanation-section" class="mt-8 p-6 bg-white rounded-xl shadow-lg">
+            <h3 class="text-2xl font-semibold text-indigo-700 mb-6">
+                Model Transparency: Financial Value of Each Threat
+            </h3>
+            <p class="text-base text-gray-700 mb-6">
+                The financial figures above are calculated by assigning a weighted risk value to <strong>every single compromised credential</strong> found, based on the fidelity and exploitability of the data source. Here is the breakdown of how each threat category contributes to your <strong>Annualized Loss Expectancy (ALE)</strong> of <span id="summary_ale_output"></span>:
+            </p>
+            <ul class="list-disc list-inside text-base text-gray-700 space-y-4">
+                <li id="explanation_infostealer"></li>
+                <li id="explanation_cookies"></li>
+                <li id="explanation_admin"></li>
+                <li id="explanation_new_dumps"></li>
+                <li id="explanation_remainder"></li>
+                <li id="explanation_summary"></li>
+            </ul>
+        </div>
+        <!-- END MODEL TRANSPARENCY SECTION -->
     </div>
 
 <script>
@@ -213,10 +219,11 @@
     // Risk Weights based purely on Intelligence Quality
     const RISK_WEIGHTS = {
         "Infostealer Log": 9,
+        "Cookies Found": 10, // New Highest Risk Factor
         "New Unique Dump": 7,
         "Combolist": 2, // Used for the remainder of 'Total Exposed'
         "Privileged Multiplier": 10, // Multiplies the risk of any compromised admin account
-        "Context Multiplier": 1.5, // Assume a slight increase if any targeted data is found
+        "Context Multiplier": 1.5, // Assume a slight increase if any targeted data is present
     };
 
     // Normalization factors (Proprietary "Secret Sauce")
@@ -235,15 +242,16 @@
         // 1. Get Inputs (From CTI Report Findings)
         const totalExposed = parseInt(document.getElementById('total_exposed').value) || 0;
         const infostealerCount = parseInt(document.getElementById('infostealer_count').value) || 0;
+        const cookiesCount = parseInt(document.getElementById('cookies_count').value) || 0; // NEW INPUT
         const adminCount = parseInt(document.getElementById('admin_count').value) || 0;
         const newDumpsCount = parseInt(document.getElementById('new_dumps_count').value) || 0;
         const impactCost = parseInt(document.getElementById('impact_cost').value) || 0;
 
         // Ensure inputs are non-negative
-        if (totalExposed < 0 || infostealerCount < 0 || adminCount < 0 || newDumpsCount < 0 || impactCost < 0) return;
+        if (totalExposed < 0 || infostealerCount < 0 || cookiesCount < 0 || adminCount < 0 || newDumpsCount < 0 || impactCost < 0) return;
 
         // Calculate the remainder (assumed to be lower-risk Combolist/Old Dumps)
-        const highRiskCount = infostealerCount + newDumpsCount;
+        const highRiskCount = infostealerCount + cookiesCount + newDumpsCount;
         const remainderCount = Math.max(0, totalExposed - highRiskCount);
 
         // --- Step 2: Calculate Weighted Credential Exposure Risk (CER) Score ---
@@ -251,22 +259,21 @@
         // 1. Volume & Source Weighting
         let cerScore = 0;
         cerScore += infostealerCount * RISK_WEIGHTS["Infostealer Log"];
+        cerScore += cookiesCount * RISK_WEIGHTS["Cookies Found"]; // NEW WEIGHTING
         cerScore += newDumpsCount * RISK_WEIGHTS["New Unique Dump"];
         cerScore += remainderCount * RISK_WEIGHTS["Combolist"];
 
         // 2. Privilege Multiplier (Multiply Admin Count by the highest risk weight)
+        // Admin risk is still the highest due to the Privilege Multiplier (10 * 9 = 90)
         const adminRiskAddition = adminCount * RISK_WEIGHTS["Privileged Multiplier"] * RISK_WEIGHTS["Infostealer Log"];
         cerScore += adminRiskAddition;
 
-        // 3. Context Multiplier (Assume a context match if any admin or infostealer data is present)
-        const contextMultiplier = (infostealerCount > 0 || adminCount > 0) ? RISK_WEIGHTS["Context Multiplier"] : 1;
+        // 3. Context Multiplier (Assume a context match if any admin, infostealer, or cookie data is present)
+        const contextMultiplier = (infostealerCount > 0 || adminCount > 0 || cookiesCount > 0) ? RISK_WEIGHTS["Context Multiplier"] : 1;
 
         const finalCERScore = cerScore * contextMultiplier;
 
         // --- Step 3: Calculate Annual Breach Likelihood (L) ---
-
-        // Since we have no client control data (MFA), we multiply CER by the Industry TEF (constant)
-        // and normalize to get the Inherent Likelihood.
         let annualLikelihood = finalCERScore * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE;
         annualLikelihood = Math.min(0.99, annualLikelihood); // Cap at 99%
 
@@ -275,11 +282,9 @@
 
         // --- Step 5: Calculate Risk Reduction Value (ROI) ---
         
-        // CTI Sales Pitch: If client mitigates ALL high-risk accounts (Infostealer, Admin, New Dumps),
-        // the remaining risk is only from the lower-risk Combolist matches.
-
         // Calculate a 'Residual CER' after remediation of high-risk items
         const mitigatedCER = (infostealerCount * RISK_WEIGHTS["Infostealer Log"]) + 
+                             (cookiesCount * RISK_WEIGHTS["Cookies Found"]) + // MITIGATE COOKIES
                              (adminCount * RISK_WEIGHTS["Privileged Multiplier"] * RISK_WEIGHTS["Infostealer Log"]) + 
                              (newDumpsCount * RISK_WEIGHTS["New Unique Dump"]);
         
@@ -291,8 +296,29 @@
         // The ROI is the difference between current ALE and mitigated ALE
         const riskReductionValue = ale - aleAfterMitigation;
 
+        // --- 6. Calculate Dollar Weight Contribution for each component ---
+        
+        // A. Infostealer Dollar Weight
+        const infostealerCER = infostealerCount * RISK_WEIGHTS["Infostealer Log"];
+        const infostealerDollarWeight = infostealerCER * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE * impactCost * contextMultiplier;
 
-        // --- 6. Display Outputs ---
+        // B. Cookies Dollar Weight (NEW)
+        const cookiesCER = cookiesCount * RISK_WEIGHTS["Cookies Found"];
+        const cookiesDollarWeight = cookiesCER * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE * impactCost * contextMultiplier;
+
+        // C. Admin Dollar Weight
+        const adminCER = adminCount * RISK_WEIGHTS["Privileged Multiplier"] * RISK_WEIGHTS["Infostealer Log"];
+        const adminDollarWeight = adminCER * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE * impactCost * contextMultiplier;
+
+        // D. New Dumps Dollar Weight
+        const newDumpsCER = newDumpsCount * RISK_WEIGHTS["New Unique Dump"];
+        const newDumpsDollarWeight = newDumpsCER * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE * impactCost * contextMultiplier;
+
+        // E. Remainder Dollar Weight
+        const remainderCER = remainderCount * RISK_WEIGHTS["Combolist"];
+        const remainderDollarWeight = remainderCER * NORMALIZATION_FACTOR * INDUSTRY_TEF_BASELINE * impactCost * contextMultiplier;
+
+        // --- 7. Display Outputs ---
 
         // Likelihood Output
         document.getElementById('likelihood_output').textContent = `${(annualLikelihood * 100).toFixed(2)}%`;
@@ -304,12 +330,41 @@
         document.getElementById('roi_output').textContent = formatCurrency(riskReductionValue);
 
         // Update Risk Gauge
-        // Use a visual max of 15% likelihood for pointer movement (15% = 100% of gauge width)
         let pointerPosition = Math.min(annualLikelihood / 0.15, 1.0);
         document.getElementById('likelihood_pointer').style.left = `${pointerPosition * 100}%`;
 
         // Update Priority Alert
         updatePriorityAlert(annualLikelihood);
+        
+        // --- 8. Dynamic Transparency Text Update (Non-Technical) ---
+        
+        // Update ALE in the heading text
+        document.getElementById('summary_ale_output').textContent = formatCurrency(ale);
+
+        // A. Infostealer Breakout
+        document.getElementById('explanation_infostealer').innerHTML = 
+            `<strong>1. Infostealer Logs:</strong> We found <strong>${infostealerCount}</strong> severe logs. These are the <strong>most exploitable</strong> threats (fresh session data/credentials) and, by themselves, account for <strong>${formatCurrency(infostealerDollarWeight)}</strong> of your total expected loss.`;
+        
+        // B. Cookies Breakout (NEW)
+        document.getElementById('explanation_cookies').innerHTML = 
+            `<strong>2. Compromised Session Cookies:</strong> The <strong>${cookiesCount}</strong> compromised cookies found represent <strong>extreme, immediate risk</strong>. They are often used to bypass MFA, driving <strong>${formatCurrency(cookiesDollarWeight)}</strong> of your total expected loss.`;
+
+        // C. Admin Breakout
+        document.getElementById('explanation_admin').innerHTML = 
+            `<strong>3. Admin Credentials:</strong> Your <strong>${adminCount}</strong> <strong>Admin/C-Level Credentials</strong> are exposed. Due to their immense privilege, these high-value targets alone drive <strong>${formatCurrency(adminDollarWeight)}</strong> of your expected annual loss.`;
+        
+        // D. New Dumps Breakout
+        document.getElementById('explanation_new_dumps').innerHTML = 
+            `<strong>4. New Unique Dumps:</strong> The <strong>${newDumpsCount}</strong> recent breach dumps found represent a medium-level threat (high confidence, single source), contributing <strong>${formatCurrency(newDumpsDollarWeight)}</strong> to the total risk.`;
+
+        // E. Remainder/Baseline Breakout
+        document.getElementById('explanation_remainder').innerHTML = 
+            `<strong>5. Baseline Exposure:</strong> The remaining <strong>${remainderCount}</strong> credentials are the total exposed emails minus the four high-risk categories. They still contribute <strong>${formatCurrency(remainderDollarWeight)}</strong>, proving that even outdated data poses a financial threat via credential stuffing.`;
+
+        // F. Final Summary
+        document.getElementById('explanation_summary').innerHTML = 
+            `<strong>6. Final Impact:</strong> The total risk is a combined probability of <strong>${(annualLikelihood * 100).toFixed(2)}%</strong>, leading to a <strong>${formatCurrency(ale)}</strong> Annualized Loss Expectancy. Acting on the high-risk items yields a direct ROI of <strong>${formatCurrency(riskReductionValue)}</strong> in avoided loss.`;
+
     }
 
     function updatePriorityAlert(likelihood) {
